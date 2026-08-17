@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .text-neon {
+    color: #00FF41;
+    text-shadow: 0 0 12px rgba(0, 255, 65, 0.7), 0 0 24px rgba(0, 255, 65, 0.4);
+  }
+  .bg-neon {
+    background-color: #00FF41;
+  }
+  .border-neon {
+    border-color: rgba(0, 255, 65, 0.4);
+  }
+  .shadow-neon {
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.45);
+  }
+  .shadow-neon-sm {
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.25);
+  }
+
+  /* Completely hide ugly scrollbars */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Global scrollbar refinement - no ugly gray boxes */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+body {
+  background-color: #07080b;
+  color: #f3f4f6;
+  overflow-x: hidden;
+}
