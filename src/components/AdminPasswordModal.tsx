@@ -7,12 +7,18 @@ interface AdminPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  title?: string;
+  description?: string;
+  confirmButtonText?: string;
 }
 
 export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  title = 'Área Restrita',
+  description = 'Acesso exclusivo do Administrador',
+  confirmButtonText = 'Desbloquear',
 }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +36,7 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
         setSuccess(false);
         setPassword('');
         onSuccess();
-      }, 500);
+      }, 400);
     } else {
       setError(true);
       setSuccess(false);
@@ -55,10 +61,10 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Área Restrita
+                {title}
               </h3>
               <p className="text-[11px] text-zinc-400">
-                Acesso exclusivo do Administrador
+                {description}
               </p>
             </div>
           </div>
@@ -108,7 +114,7 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
                 className="text-[11px] text-red-400 font-semibold flex items-center gap-1 mt-1"
               >
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>Senha incorreta. Tente novamente.</span>
+                <span>Senha incorreta. Apenas o Administrador pode prosseguir.</span>
               </motion.p>
             )}
 
@@ -119,33 +125,26 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({
                 className="text-[11px] text-[#00FF41] font-semibold flex items-center gap-1 mt-1"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Senha correta! Liberando acesso...</span>
+                <span>Autenticação confirmada!</span>
               </motion.p>
             )}
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800 text-[10px] text-zinc-400 flex items-center justify-between">
-            <span>Dica de senha padrão:</span>
-            <span className="font-mono text-[#00FF41] font-bold bg-[#00FF41]/10 px-1.5 py-0.5 rounded border border-[#00FF41]/30">
-              1234
-            </span>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-bold text-xs transition-colors"
+              className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-bold text-xs transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               id="btn-confirm-admin-password"
-              className="flex-1 py-2.5 rounded-xl bg-[#00FF41] hover:bg-[#10ff55] text-black font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(0,255,65,0.4)] flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-[#00FF41] hover:bg-[#10ff55] text-black font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(0,255,65,0.4)] flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Unlock className="w-3.5 h-3.5" />
-              <span>Desbloquear</span>
+              <span>{confirmButtonText}</span>
             </button>
           </div>
         </form>

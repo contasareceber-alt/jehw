@@ -147,6 +147,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
   const [activeTab, setActiveTab] = useState<'expenses' | 'admin'>('expenses');
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordActionType, setPasswordActionType] = useState<'enter_admin' | 'clean_form' | null>(null);
   const [showConfirmWipeModal, setShowConfirmWipeModal] = useState(false);
 
   // Admin Sub Tabs: 'movements' | 'cards' | 'password'
@@ -219,6 +220,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
   const [formCleanToast, setFormCleanToast] = useState(false);
 
   const handleResetFormFields = () => {
+    // Limpa apenas o que está visível na tela no formulário ativo
     setEmployeeNameInput('');
     setOrigin('');
     setDestination('');
@@ -236,7 +238,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
     setSaveAsOpenTrip(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setFormCleanToast(true);
-    setTimeout(() => setFormCleanToast(false), 2500);
+    setTimeout(() => setFormCleanToast(false), 3500);
   };
 
   // Admin Card Management States (Clean initial state when no cards exist)
@@ -639,6 +641,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
               id="tab-btn-admin"
               onClick={() => {
                 if (!isAdminUnlocked) {
+                  setPasswordActionType('enter_admin');
                   setIsPasswordModalOpen(true);
                 } else {
                   setActiveTab('admin');
@@ -676,19 +679,6 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
               <ImageIcon className="w-3.5 h-3.5 text-[#00FF41]" />
               <span>Gerar Imagem</span>
             </button>
-
-            {onClearAllForProduction && (
-              <button
-                type="button"
-                id="btn-wipe-production"
-                onClick={() => setShowConfirmWipeModal(true)}
-                title="Limpar sistema"
-                className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-zinc-900 border border-red-500/40 text-red-400 hover:bg-red-500/20 hover:text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all whitespace-nowrap shadow-[0_0_10px_rgba(239,68,68,0.15)] cursor-pointer relative z-10"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                <span>Limpar</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -717,6 +707,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
               id="btn-shortcut-add-card"
               onClick={() => {
                 if (!isAdminUnlocked) {
+                  setPasswordActionType('enter_admin');
                   setIsPasswordModalOpen(true);
                 } else {
                   setActiveTab('admin');
@@ -1183,12 +1174,22 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
               <button
                 type="button"
                 id="btn-limpar-campos"
-                onClick={handleResetFormFields}
+                onClick={() => {
+                  if (isAdminUnlocked) {
+                    handleResetFormFields();
+                  } else {
+                    setPasswordActionType('clean_form');
+                    setIsPasswordModalOpen(true);
+                  }
+                }}
                 className="px-4 py-3.5 sm:py-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 hover:border-zinc-500 text-zinc-200 hover:text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer whitespace-nowrap"
-                title="Limpar todos os campos preenchidos no formulário"
+                title="Limpar campos preenchidos na tela (Exclusivo para Administrador)"
               >
-                <RotateCcw className="w-4 h-4 text-zinc-400" />
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
                 <span>Limpar</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono font-bold border border-amber-500/30">
+                  Admin
+                </span>
               </button>
             </div>
           </form>
@@ -1211,10 +1212,10 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="p-3 rounded-xl bg-zinc-900/90 border border-zinc-700 text-zinc-300 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-lg"
+                className="p-3.5 rounded-2xl bg-zinc-900/95 border border-[#00FF41]/50 text-zinc-200 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,255,65,0.2)]"
               >
-                <CheckCircle2 className="w-4 h-4 text-[#00FF41]" />
-                <span>Formulário limpo com sucesso. Você pode iniciar um novo lançamento.</span>
+                <CheckCircle2 className="w-4 h-4 text-[#00FF41] shrink-0" />
+                <span>Formulário limpo pelo Administrador. Todos os lançamentos salvos continuam guardados em seus respectivos meses.</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1863,6 +1864,30 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                   </button>
                 </div>
               </form>
+
+              {/* DANGER ZONE / PRODUCTION RESET (ADMIN ONLY) */}
+              {onClearAllForProduction && (
+                <div className="mt-8 pt-6 border-t border-red-500/20 space-y-3">
+                  <div className="flex items-center gap-2 text-red-400">
+                    <Trash2 className="w-4 h-4" />
+                    <span className="text-xs font-black uppercase tracking-wider">
+                      Zona Crítica do Administrador • Zerar Dados de Teste
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Caso queira iniciar o sistema do zero em modo de produção real (removendo lançamentos fictícios de teste), utilize este botão com confirmação de segurança.
+                  </p>
+                  <button
+                    type="button"
+                    id="btn-wipe-production-admin"
+                    onClick={() => setShowConfirmWipeModal(true)}
+                    className="w-full py-3 px-4 rounded-2xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(239,68,68,0.15)] cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                    <span>Zerar Lançamentos de Teste para Produção</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2381,11 +2406,32 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
       {/* ADMIN PASSWORD UNLOCK MODAL */}
       <AdminPasswordModal
         isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
+        onClose={() => {
+          setIsPasswordModalOpen(false);
+          setPasswordActionType(null);
+        }}
+        title={
+          passwordActionType === 'clean_form'
+            ? 'Autorização de Administrador'
+            : 'Área do Administrador'
+        }
+        description={
+          passwordActionType === 'clean_form'
+            ? 'Apenas o Administrador tem autorização para limpar os campos preenchidos na tela.'
+            : 'Acesso exclusivo com senha para controle total de cartões, parâmetros e conciliação.'
+        }
+        confirmButtonText={
+          passwordActionType === 'clean_form' ? 'Autorizar e Limpar' : 'Desbloquear Acesso'
+        }
         onSuccess={() => {
           setIsAdminUnlocked(true);
           setIsPasswordModalOpen(false);
-          setActiveTab('admin');
+          if (passwordActionType === 'clean_form') {
+            handleResetFormFields();
+          } else {
+            setActiveTab('admin');
+          }
+          setPasswordActionType(null);
         }}
       />
 
