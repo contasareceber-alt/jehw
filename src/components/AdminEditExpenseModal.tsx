@@ -242,7 +242,7 @@ export const AdminEditExpenseModal: React.FC<AdminEditExpenseModalProps> = ({
               >
                 <option value="COMERCIAL">COMERCIAL</option>
                 <option value="MARKETING">MARKETING</option>
-                <option value="ATENDIMENTO">ATENDIMENTO</option>
+                <option value="EVENTOS">EVENTOS</option>
                 <option value="DIRETORES">DIRETORES</option>
               </select>
             </div>

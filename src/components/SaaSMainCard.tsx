@@ -56,7 +56,7 @@ import {
   checkAdminPassword,
 } from '../services/storage';
 
-export type SectorType = 'COMERCIAL' | 'MARKETING' | 'ATENDIMENTO' | 'DIRETORES';
+export type SectorType = 'COMERCIAL' | 'MARKETING' | 'EVENTOS' | 'DIRETORES';
 
 export const extractMonthFromDate = (dateStr?: string): string => {
   if (!dateStr) return '';
@@ -894,14 +894,14 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
           {/* Glowing accent */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#00FF41]/5 rounded-full blur-3xl pointer-events-none" />
 
-          {/* 1. SECTOR SELECTOR (COMERCIAL, MARKETING, ATENDIMENTO, DIRETORES) */}
+          {/* 1. SECTOR SELECTOR (COMERCIAL, MARKETING, EVENTOS, DIRETORES) */}
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-[#00FF41]" />
               Selecione o Setor da CEO Travel:
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-[#090a0d] border border-zinc-800/70 rounded-2xl">
-              {(['COMERCIAL', 'MARKETING', 'ATENDIMENTO', 'DIRETORES'] as SectorType[]).map((sec) => {
+              {(['COMERCIAL', 'MARKETING', 'EVENTOS', 'DIRETORES'] as SectorType[]).map((sec) => {
                 const isSelected = selectedSector === sec;
                 return (
                   <button
