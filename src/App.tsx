@@ -19,6 +19,8 @@ import {
   saveExpenses,
   saveStatements,
   saveUsers,
+  subscribeToCloudState,
+  syncStateToCloud,
 } from './services/storage';
 import { SaaSMainCard } from './components/SaaSMainCard';
 import { ReportImageModal } from './components/ReportImageModal';
@@ -87,7 +89,18 @@ export default function App() {
   const [isReconcilerOpen, setIsReconcilerOpen] = useState(false);
   const [isCardManagerOpen, setIsCardManagerOpen] = useState(false);
 
-  // Storage Sync
+  // Real-time Firestore Synchronization across all users/browsers
+  useEffect(() => {
+    const unsubscribe = subscribeToCloudState((remote) => {
+      if (remote.users) setUsers(remote.users);
+      if (remote.cards) setCards(remote.cards);
+      if (remote.expenses) setExpenses(remote.expenses);
+      if (remote.statements) setStatements(remote.statements);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Storage & Cloud Sync
   useEffect(() => {
     saveUsers(users);
   }, [users]);
@@ -119,60 +132,76 @@ export default function App() {
 
   // Handlers
   const handleSaveExpense = (newOrUpdated: ExpenseItem) => {
+    let nextExpenses: ExpenseItem[] = [];
     setExpenses((prev) => {
       const idx = prev.findIndex((e) => e.id === newOrUpdated.id);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = newOrUpdated;
+        nextExpenses = next;
         return next;
       }
-      return [newOrUpdated, ...prev];
+      nextExpenses = [newOrUpdated, ...prev];
+      return nextExpenses;
     });
 
     // Update card spent
     const card = cards.find((c) => c.id === newOrUpdated.cardId);
+    let nextCards = cards;
     if (card) {
       const cardExpenses = [...expenses.filter((e) => e.id !== newOrUpdated.id), newOrUpdated].filter(
         (e) => e.cardId === card.id
       );
       const total = cardExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
-      handleUpdateCard({
-        ...card,
-        currentSpent: total,
-      });
+      const updatedCard = { ...card, currentSpent: total };
+      nextCards = cards.map((c) => (c.id === updatedCard.id ? updatedCard : c));
+      setCards(nextCards);
     }
+
+    syncStateToCloud({
+      expenses: nextExpenses.length ? nextExpenses : [newOrUpdated, ...expenses],
+      cards: nextCards,
+    });
   };
 
   const handleDeleteExpense = (expenseId: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+    const updated = expenses.filter((e) => e.id !== expenseId);
+    setExpenses(updated);
+    syncStateToCloud({ expenses: updated });
   };
 
   const handleLockExpense = (expenseId: string) => {
-    setExpenses((prev) =>
-      prev.map((e) =>
-        e.id === expenseId
-          ? {
-              ...e,
-              status: 'locked',
-              lockedAt: new Date().toISOString(),
-              lockedBy: currentUser.id,
-              updatedAt: new Date().toISOString(),
-            }
-          : e
-      )
+    const updated = expenses.map((e) =>
+      e.id === expenseId
+        ? {
+            ...e,
+            status: 'locked' as const,
+            lockedAt: new Date().toISOString(),
+            lockedBy: currentUser.id,
+            updatedAt: new Date().toISOString(),
+          }
+        : e
     );
+    setExpenses(updated);
+    syncStateToCloud({ expenses: updated });
   };
 
   const handleUpdateCard = (updatedCard: CorporateCard) => {
-    setCards((prev) => prev.map((c) => (c.id === updatedCard.id ? updatedCard : c)));
+    const updated = cards.map((c) => (c.id === updatedCard.id ? updatedCard : c));
+    setCards(updated);
+    syncStateToCloud({ cards: updated });
   };
 
   const handleCreateCard = (newCard: CorporateCard) => {
-    setCards((prev) => [...prev, newCard]);
+    const updated = [...cards, newCard];
+    setCards(updated);
+    syncStateToCloud({ cards: updated });
   };
 
   const handleDeleteCard = (cardId: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== cardId));
+    const updated = cards.filter((c) => c.id !== cardId);
+    setCards(updated);
+    syncStateToCloud({ cards: updated });
   };
 
   const handleReconcileMatch = (statementId: string, expenseId: string) => {
@@ -181,38 +210,41 @@ export default function App() {
     if (!targetStatement || !targetExpense) return;
 
     // Update statement
-    setStatements((prev) =>
-      prev.map((s) =>
-        s.id === statementId
-          ? {
-              ...s,
-              matchedExpenseId: expenseId,
-              matchStatus: 'exact',
-            }
-          : s
-      )
+    const updatedStatements: InvoiceStatementLine[] = statements.map((s) =>
+      s.id === statementId
+        ? {
+            ...s,
+            matchedExpenseId: expenseId,
+            matchStatus: 'exact' as const,
+          }
+        : s
     );
+    setStatements(updatedStatements);
 
     // Update expense
-    setExpenses((prev) =>
-      prev.map((e) =>
-        e.id === expenseId
-          ? {
-              ...e,
-              status: 'reconciled',
-              invoiceMatch: {
-                statementLineId: statementId,
-                invoiceDesc: targetStatement.rawDescription,
-                invoiceDate: targetStatement.date,
-                invoiceAmount: targetStatement.amount,
-                difference: Math.abs(targetStatement.amount - e.totalAmount),
-                reconciledAt: new Date().toISOString(),
-                reconciledBy: `${currentUser.name} (${currentUser.role})`,
-              },
-            }
-          : e
-      )
+    const updatedExpenses: ExpenseItem[] = expenses.map((e) =>
+      e.id === expenseId
+        ? {
+            ...e,
+            status: 'reconciled' as const,
+            invoiceMatch: {
+              statementLineId: statementId,
+              invoiceDesc: targetStatement.rawDescription,
+              invoiceDate: targetStatement.date,
+              invoiceAmount: targetStatement.amount,
+              difference: Math.abs(targetStatement.amount - e.totalAmount),
+              reconciledAt: new Date().toISOString(),
+              reconciledBy: `${currentUser.name} (${currentUser.role})`,
+            },
+          }
+        : e
     );
+    setExpenses(updatedExpenses);
+
+    syncStateToCloud({
+      statements: updatedStatements,
+      expenses: updatedExpenses,
+    });
   };
 
   const handleAddStatementLine = (line: Omit<InvoiceStatementLine, 'id'>) => {
@@ -220,7 +252,9 @@ export default function App() {
       ...line,
       id: `inv_${Date.now()}`,
     };
-    setStatements((prev) => [newLine, ...prev]);
+    const updated = [newLine, ...statements];
+    setStatements(updated);
+    syncStateToCloud({ statements: updated });
   };
 
   const handleResetData = () => {
