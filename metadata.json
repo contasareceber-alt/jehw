@@ -1,6 +1,6 @@
 {
-  "name": "Cartões CEO Travel - Gestão & Conciliação",
-  "description": "SaaS corporativo de gestão de cartões empresariais da CEO Travel para conciliação ágil de despesas de transporte, estacionamentos, compras e refeições com upload de comprovantes.",
+  "name": "CEO Travel",
+  "description": "Sistema Corporativo CEO Travel para gestão de cartões empresariais, lançamento de despesas e conciliação financeira.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
