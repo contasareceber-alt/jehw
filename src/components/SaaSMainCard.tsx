@@ -120,6 +120,7 @@ interface SaaSMainCardProps {
   onOpenCardManager: () => void;
   onUpdateCard?: (updatedCard: CorporateCard) => void;
   onCreateCard?: (newCard: CorporateCard) => void;
+  onDeleteCard?: (cardId: string) => void;
   onResetData?: () => void;
   onClearAllForProduction?: () => void;
 }
@@ -140,6 +141,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
   onOpenCardManager,
   onUpdateCard,
   onCreateCard,
+  onDeleteCard,
   onResetData,
   onClearAllForProduction,
 }) => {
@@ -149,6 +151,11 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordActionType, setPasswordActionType] = useState<'enter_admin' | 'clean_form' | null>(null);
   const [showConfirmWipeModal, setShowConfirmWipeModal] = useState(false);
+
+  // Deletion modals state
+  const [expenseToDelete, setExpenseToDelete] = useState<ExpenseItem | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CorporateCard | null>(null);
+  const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
 
   // Admin Sub Tabs: 'movements' | 'cards' | 'password'
   const [adminSubTab, setAdminSubTab] = useState<'movements' | 'cards' | 'password'>('movements');
@@ -352,6 +359,43 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
 
     setCardSaveToast('Cartão salvo com sucesso! Os dados foram atualizados e já estão disponíveis na aba de Lançamentos.');
     setTimeout(() => setCardSaveToast(null), 4000);
+  };
+
+  const handleAdminSaveExpense = (updated: ExpenseItem) => {
+    onSaveExpense(updated);
+    setEditingExpense(null);
+    setActionSuccessToast(`Lançamento de ${updated.employeeName} atualizado com sucesso!`);
+    setTimeout(() => setActionSuccessToast(null), 4000);
+  };
+
+  const handleAdminDeleteExpense = (expId: string) => {
+    onDeleteExpense(expId);
+    setEditingExpense(null);
+    setActionSuccessToast('Lançamento excluído com sucesso.');
+    setTimeout(() => setActionSuccessToast(null), 4000);
+  };
+
+  const executeDeleteExpense = () => {
+    if (!expenseToDelete) return;
+    const name = expenseToDelete.employeeName;
+    const amount = expenseToDelete.totalAmount;
+    onDeleteExpense(expenseToDelete.id);
+    setExpenseToDelete(null);
+    setActionSuccessToast(`Lançamento de R$ ${amount.toFixed(2)} (${name}) foi excluído com sucesso.`);
+    setTimeout(() => setActionSuccessToast(null), 4000);
+  };
+
+  const executeDeleteCard = () => {
+    if (!cardToDelete) return;
+    const cardName = cardToDelete.name;
+    if (onDeleteCard) {
+      onDeleteCard(cardToDelete.id);
+    }
+    const remaining = cards.filter((c) => c.id !== cardToDelete.id);
+    setCardToDelete(null);
+    loadCardToForm(remaining[0] || null);
+    setActionSuccessToast(`Cartão "${cardName}" excluído com sucesso.`);
+    setTimeout(() => setActionSuccessToast(null), 4000);
   };
 
   const handleSavePassword = (e: React.FormEvent) => {
@@ -1435,12 +1479,8 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                           <button
                             type="button"
                             id={`btn-admin-del-exp-${exp.id}`}
-                            onClick={() => {
-                              if (window.confirm(`Deseja excluir permanentemente o lançamento de R$ ${exp.totalAmount.toFixed(2)} de ${exp.employeeName}?`)) {
-                                onDeleteExpense(exp.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-xl bg-zinc-900 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-zinc-800 transition-all shadow-sm"
+                            onClick={() => setExpenseToDelete(exp)}
+                            className="p-1.5 rounded-xl bg-zinc-900 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-zinc-800 transition-all shadow-sm cursor-pointer"
                             title="Excluir lançamento"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1717,16 +1757,32 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                   </div>
                 </div>
 
-                {/* PROMINENT SAVE CARD BUTTON */}
-                <div className="pt-2">
+                {/* PROMINENT SAVE & DELETE CARD BUTTONS */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
                   <button
                     type="submit"
                     id="btn-salvar-cartao-admin"
-                    className="w-full py-3.5 px-4 rounded-2xl bg-[#00FF41] hover:bg-[#00FF41]/90 text-black font-black text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,255,65,0.4)] transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    className="flex-1 w-full py-3.5 px-4 rounded-2xl bg-[#00FF41] hover:bg-[#00FF41]/90 text-black font-black text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,255,65,0.4)] transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
                     <span>Salvar Cartão & Atualizar Lançamentos</span>
                   </button>
+
+                  {editingCardId !== 'new' && (
+                    <button
+                      type="button"
+                      id="btn-admin-excluir-cartao"
+                      onClick={() => {
+                        const cur = cards.find((c) => c.id === editingCardId);
+                        if (cur) setCardToDelete(cur);
+                      }}
+                      className="w-full sm:w-auto py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/50 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      title="Excluir este cartão"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Excluir Cartão</span>
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -1865,17 +1921,17 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                 </div>
               </form>
 
-              {/* DANGER ZONE / PRODUCTION RESET (ADMIN ONLY) */}
+              {/* DANGER ZONE / CLEAN PRODUCTION (ADMIN ONLY) */}
               {onClearAllForProduction && (
                 <div className="mt-8 pt-6 border-t border-red-500/20 space-y-3">
                   <div className="flex items-center gap-2 text-red-400">
                     <Trash2 className="w-4 h-4" />
                     <span className="text-xs font-black uppercase tracking-wider">
-                      Zona Crítica do Administrador • Zerar Dados de Teste
+                      Zona do Administrador • Limpar Histórico de Lançamentos
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Caso queira iniciar o sistema do zero em modo de produção real (removendo lançamentos fictícios de teste), utilize este botão com confirmação de segurança.
+                    Utilize esta opção quando desejar zerar os lançamentos do banco de dados para iniciar um novo ciclo contábil ou zerar a base oficial.
                   </p>
                   <button
                     type="button"
@@ -1884,7 +1940,7 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                     className="w-full py-3 px-4 rounded-2xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/50 text-red-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(239,68,68,0.15)] cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />
-                    <span>Zerar Lançamentos de Teste para Produção</span>
+                    <span>Zerar Todos os Lançamentos</span>
                   </button>
                 </div>
               )}
@@ -2337,12 +2393,8 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
                         <button
                           type="button"
                           id={`btn-delete-exp-${exp.id}`}
-                          onClick={() => {
-                            if (window.confirm(`Deseja excluir o lançamento de R$ ${exp.totalAmount.toFixed(2)} de ${exp.employeeName}?`)) {
-                              onDeleteExpense(exp.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-zinc-800 transition-colors"
+                          onClick={() => setExpenseToDelete(exp)}
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-zinc-800 transition-colors cursor-pointer"
                           title="Excluir movimentação"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2505,9 +2557,208 @@ export const SaaSMainCard: React.FC<SaaSMainCardProps> = ({
         onClose={() => setEditingExpense(null)}
         expense={editingExpense}
         cards={cards}
-        onSaveExpense={onSaveExpense}
-        onDeleteExpense={onDeleteExpense}
+        onSaveExpense={handleAdminSaveExpense}
+        onDeleteExpense={handleAdminDeleteExpense}
       />
+
+      {/* EXPENSE DELETE CONFIRMATION MODAL */}
+      {expenseToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="bg-[#111217] border border-red-500/50 rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-[0_0_50px_rgba(239,68,68,0.25)]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                  Excluir Lançamento
+                </h4>
+                <span className="text-[11px] text-zinc-400">
+                  Esta ação é irreversível e removerá o registro do sistema.
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#090a0d] border border-zinc-800 space-y-1.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Colaborador:</span>
+                <span className="text-zinc-100 font-bold">{expenseToDelete.employeeName} ({expenseToDelete.employeeDept})</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Descrição:</span>
+                <span className="text-zinc-200 truncate max-w-[200px]">{expenseToDelete.title}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Valor:</span>
+                <span className="text-[#00FF41] font-mono font-black">
+                  R$ {expenseToDelete.totalAmount.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Data:</span>
+                <span className="text-zinc-400 font-mono text-[11px]">
+                  {new Date(expenseToDelete.date).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setExpenseToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-delete-expense"
+                onClick={executeDeleteExpense}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* CARD DELETE CONFIRMATION MODAL */}
+      {cardToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="bg-[#111217] border border-red-500/50 rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-[0_0_50px_rgba(239,68,68,0.25)]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                  Excluir Cartão Corporativo
+                </h4>
+                <span className="text-[11px] text-zinc-400">
+                  Deseja remover este cartão da lista de cartões disponíveis?
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#090a0d] border border-zinc-800 space-y-1.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Identificação:</span>
+                <span className="text-zinc-100 font-bold">{cardToDelete.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Banco:</span>
+                <span className="text-zinc-300">{cardToDelete.bank}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Final:</span>
+                <span className="text-[#00FF41] font-mono font-bold">•••• {cardToDelete.last4} ({cardToDelete.brand.toUpperCase()})</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCardToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-delete-card"
+                onClick={executeDeleteCard}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir Cartão</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION SUCCESS TOAST */}
+      <AnimatePresence>
+        {actionSuccessToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#090a0d] border border-[#00FF41]/60 text-[#00FF41] text-xs font-bold flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,255,65,0.3)] backdrop-blur-xl"
+          >
+            <CheckCircle2 className="w-4 h-4 text-[#00FF41] shrink-0" />
+            <span>{actionSuccessToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* WIPE ALL DATA CONFIRMATION MODAL */}
+      {showConfirmWipeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="bg-[#111217] border border-red-500/50 rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-[0_0_50px_rgba(239,68,68,0.25)]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                  Zerar Lançamentos
+                </h4>
+                <span className="text-[11px] text-zinc-400">
+                  Esta ação limpará todos os lançamentos cadastrados do sistema.
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Tem certeza que deseja zerar todos os lançamentos e extratos cadastrados? Os cartões corporativos serão mantidos e os saldos serão zerados.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmWipeModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-wipe-all"
+                onClick={() => {
+                  if (onClearAllForProduction) {
+                    onClearAllForProduction();
+                  }
+                  setShowConfirmWipeModal(false);
+                  setActionSuccessToast('Base de lançamentos zerada com sucesso!');
+                  setTimeout(() => setActionSuccessToast(null), 4000);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmar e Zerar</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* RECEIPT IMAGE PREVIEW MODAL */}
       {previewImageUrl && (

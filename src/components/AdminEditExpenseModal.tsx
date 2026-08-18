@@ -43,12 +43,28 @@ export const AdminEditExpenseModal: React.FC<AdminEditExpenseModalProps> = ({
 }) => {
   if (!isOpen || !expense) return null;
 
+  const formatDateForInput = (d?: string) => {
+    if (!d) return new Date().toISOString().split('T')[0];
+    if (d.includes('T')) return d.split('T')[0];
+    return d;
+  };
+
+  const parseNumericAmount = (val: string | number): number => {
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const str = String(val).trim();
+    if (!str) return 0;
+    if (str.includes(',')) {
+      return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    return parseFloat(str) || 0;
+  };
+
   const [sector, setSector] = useState<SectorType>((expense.employeeDept as SectorType) || 'COMERCIAL');
   const [employeeName, setEmployeeName] = useState(expense.employeeName || '');
   const [category, setCategory] = useState<ExpenseCategory>(expense.category || 'uber_99');
   const [cardId, setCardId] = useState(expense.cardId || cards[0]?.id || '');
-  const [totalAmount, setTotalAmount] = useState(String(expense.totalAmount || ''));
-  const [date, setDate] = useState(expense.date || '');
+  const [totalAmount, setTotalAmount] = useState(expense.totalAmount ? String(expense.totalAmount) : '');
+  const [date, setDate] = useState(formatDateForInput(expense.date));
   const [authorizer, setAuthorizer] = useState(expense.authorizationBy || '');
   const [title, setTitle] = useState(expense.title || '');
   const [status, setStatus] = useState<ExpenseItem['status']>(expense.status || 'open');
@@ -68,9 +84,36 @@ export const AdminEditExpenseModal: React.FC<AdminEditExpenseModalProps> = ({
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Sync state whenever selected expense changes
+  useEffect(() => {
+    if (!expense) return;
+    setSector((expense.employeeDept as SectorType) || 'COMERCIAL');
+    setEmployeeName(expense.employeeName || '');
+    setCategory(expense.category || 'uber_99');
+    setCardId(expense.cardId || cards[0]?.id || '');
+    setTotalAmount(expense.totalAmount ? String(expense.totalAmount) : '');
+    setDate(formatDateForInput(expense.date));
+    setAuthorizer(expense.authorizationBy || '');
+    setTitle(expense.title || '');
+    setStatus(expense.status || 'open');
+
+    setOrigin(expense.details.origin || '');
+    setDestination(expense.details.destination || '');
+    setReturnOrigin(expense.details.returnOrigin || '');
+    setReturnDestination(expense.details.returnDestination || '');
+    setParkingLocation(expense.details.parkingLocation || '');
+    setVehiclePlate(expense.details.vehiclePlate || '');
+    setMerchantName(expense.details.merchantName || '');
+    setItemsSummary(expense.details.itemsSummary || '');
+    setNotes(expense.details.notes || '');
+    setReceiptUrl(expense.details.receiptUrl);
+    setReceiptName(expense.details.receiptName);
+    setConfirmDelete(false);
+  }, [expense, cards]);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanAmount = parseFloat(String(totalAmount).replace(/\./g, '').replace(',', '.')) || 0;
+    const cleanAmount = parseNumericAmount(totalAmount);
 
     let updatedTitle = title.trim();
     if (!updatedTitle) {
@@ -87,8 +130,8 @@ export const AdminEditExpenseModal: React.FC<AdminEditExpenseModalProps> = ({
       category,
       cardId,
       totalAmount: cleanAmount,
-      date,
-      authorizationBy: authorizer.trim(),
+      date: date || formatDateForInput(expense.date),
+      authorizationBy: authorizer.trim() || 'Diretoria CEO Travel',
       title: updatedTitle,
       status,
       details: {

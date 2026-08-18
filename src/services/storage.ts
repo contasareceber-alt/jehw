@@ -2,11 +2,11 @@ import { CorporateCard, ExpenseItem, InvoiceStatementLine, UserProfile } from '.
 import { INITIAL_CARDS, INITIAL_EXPENSES, INITIAL_INVOICE_STATEMENTS, INITIAL_USERS } from '../data/initialData';
 
 const STORAGE_KEYS = {
-  USERS: 'cardmatch_users_v2',
-  CARDS: 'cardmatch_cards_v2',
-  EXPENSES: 'cardmatch_expenses_v2',
-  INVOICE_STATEMENTS: 'cardmatch_statements_v2',
-  CURRENT_USER_ID: 'cardmatch_current_user_id_v2',
+  USERS: 'ceotravel_prod_v1_users',
+  CARDS: 'ceotravel_prod_v1_cards',
+  EXPENSES: 'ceotravel_prod_v1_expenses',
+  INVOICE_STATEMENTS: 'ceotravel_prod_v1_statements',
+  CURRENT_USER_ID: 'ceotravel_prod_v1_current_user_id',
 };
 
 export const getStoredUsers = (): UserProfile[] => {

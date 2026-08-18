@@ -171,6 +171,10 @@ export default function App() {
     setCards((prev) => [...prev, newCard]);
   };
 
+  const handleDeleteCard = (cardId: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== cardId));
+  };
+
   const handleReconcileMatch = (statementId: string, expenseId: string) => {
     const targetStatement = statements.find((s) => s.id === statementId);
     const targetExpense = expenses.find((e) => e.id === expenseId);
@@ -300,6 +304,7 @@ export default function App() {
           onOpenCardManager={() => setIsCardManagerOpen(true)}
           onUpdateCard={handleUpdateCard}
           onCreateCard={handleCreateCard}
+          onDeleteCard={handleDeleteCard}
           onResetData={handleResetData}
           onClearAllForProduction={handleClearAllForProduction}
         />
